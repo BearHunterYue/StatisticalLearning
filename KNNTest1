@@ -1,0 +1,128 @@
+# realize the KNN （k-nearest neighbor） algorithm.
+import numpy as np
+import matplotlib.pyplot as plt
+import copy
+
+# this function read the file and transport the data into array
+def file2matrix(filename):
+    with open(filename) as f:
+        arrayOlines=f.readlines()
+        numberOflines=len(arrayOlines)
+        returnMat=np.zeros((numberOflines,3))
+        returnlabels=[]
+        index=0
+        for line in arrayOlines:
+            line=line.strip()
+            linelist=line.split('\t')
+            returnMat[index,:]=linelist[0:3]
+            returnlabels.append(int(linelist[-1]))
+            index=index+1
+        return returnMat,returnlabels
+
+# visualization function ,visualize the data
+def visualization(data,label):
+    plt.figure(12)
+    plt.title('Plane Distance and Game Time', size=14)
+    plt.xlabel('Plane Distance', size=14)
+    plt.ylabel('Game Time', size=14)
+    plt.scatter(data[:,0],data[:,1],15*np.array(label),15*np.array(label))
+
+    plt.figure(13)
+    plt.title('Plane Distance and Icecream', size=14)
+    plt.xlabel('Plane Distance', size=14)
+    plt.ylabel('Icecream', size=14)
+    plt.scatter(data[:, 0], data[:, 2], 15 * np.array(label), 15 * np.array(label))
+    plt.show()
+
+# Normlize the data
+def autoNorm(data):
+    minVals=data.min(0)
+    maxVals=data.max(0)
+    ranges=maxVals-minVals
+    normData=np.zeros(np.shape(data))
+    m=data.shape[0]
+    normData=data-np.tile(minVals,(m,1))
+    normData=normData/np.tile(ranges,(m,1))
+    return normData,ranges,minVals
+
+# divide the data into two parts: train and test data
+def divideData(data,label,rate):
+    # first combine data and label into one array
+    # or the order of the data and array will be out of oreder
+    datalabel1=np.concatenate((data,np.array(label).reshape((len(label),1))),1)
+    m=datalabel1.shape[0]
+    n=int(m*rate)
+    testdatalabel=np.zeros((n,datalabel1.shape[1]))
+    testIndex=np.random.randint(0,m-1,n)
+    testIndex=sorted(testIndex,reverse=True)
+    indix=0
+    for i in testIndex:
+        testdatalabel[indix]=datalabel1[i]
+        indix=indix+1
+        datalabel1 = np.delete(datalabel1, i, 0)
+    testData=testdatalabel[:,0:3]
+    testLabel=testdatalabel[:,-1].tolist()
+    trainData=datalabel1[:,0:3]
+    trainLabel=datalabel1[:,-1].tolist()
+    return [testData,testLabel],[trainData,trainLabel]
+
+# the k-Nearest Neighbor algorithm
+def kNN(x,data,label,k):
+    dataSize=data.shape[0]
+    diffMat=np.tile(x,(dataSize,1))-data
+    sqMat=diffMat**2
+    sqDistance=sqMat.sum(axis=1)
+    distance=sqDistance**0.5
+    distance=distance.argsort()
+    classCount={}
+    for i in range(k):
+        votalabel=label[distance[i]]
+        classCount[votalabel]=classCount.get(votalabel,0)+1
+    classCount=sorted(classCount.items(),key=lambda x:x[1],reverse=True)
+    return classCount[0][0]
+
+
+if __name__=='__main__':
+    data,label=file2matrix("D:/研二文件/研二上/机器学习/机器学习实战代码和数据/machinelearninginaction/Ch02/datingTestSet2.txt")
+    label1=copy.deepcopy(label)
+    data=autoNorm(data)[0]
+    test,train=divideData(data,label,0.1)
+    testData=test[0]
+    testLabel=test[1]
+    trainData=train[0]
+    trainLabel=train[1]
+    errorCount=0
+    for i in range(testData.shape[0]):
+        predict=kNN(testData[i],trainData,trainLabel,3)
+        if predict != testLabel[i]:
+            errorCount=errorCount+1
+    print('the total error rate is: %f' %(errorCount/len(testLabel)))
+    print(errorCount,len(testLabel))
+
+    # hoRatio = 0.20  # hold out 10%
+    # datingDataMat, datingLabels = file2matrix(
+    #     "D:/研二文件/研二上/机器学习/机器学习实战代码和数据/machinelearninginaction/Ch02/datingTestSet2.txt")  # load data setfrom file
+    # normMat, ranges, minVals = autoNorm(datingDataMat)
+    # m = normMat.shape[0]
+    # numTestVecs = int(m * hoRatio)
+    # errorCount = 0.0
+    # for i in range(numTestVecs):
+    #     classifierResult = kNN(normMat[i, :], normMat, datingLabels, 3)
+    #     #print("the classifier came back with: %d, the real answer is: %d" % (classifierResult, datingLabels[i]))
+    #     if (classifierResult != datingLabels[i]): errorCount += 1.0
+    # print("the total error rate is: %f" % (errorCount / float(numTestVecs)))
+    # print(errorCount)
+
+
+    # A=np.array([[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],[9,9],[10,10]])
+    # B=[1,2,3,4,5,6,7,8,9,10]
+    # test, train=divideData(A,B,0.4)
+    # testData=test[0]
+    # testLabel=test[1]
+    # trainData=train[0]
+    # trainLabel=train[1]
+    # print(testData)
+    # print(testLabel)
+    # print(trainData)
+    # print(trainLabel)
+
